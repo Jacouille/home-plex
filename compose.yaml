@@ -1,0 +1,164 @@
+networks:
+  default:
+    name: home-plex
+    external: true
+
+services:
+  bazarr: #subtitle grabber
+    container_name: bazarr
+    image: ghcr.io/hotio/bazarr
+    ports:
+      - "6767:6767"
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=6767/tcp,6767/udp
+    volumes:
+      - ./lidarr:/config
+      - $MEDIADIR:/data
+    restart: unless-stopped
+
+  # lidarr: # music search agent
+  #   image: lscr.io/linuxserver/lidarr:latest
+  #   container_name: lidarr
+  #   volumes:
+  #     - ./lidarr:/config
+  #     - $MEDIADIR:/media
+  #     #uncomment ONLY if you plan to follow the instructions in the link below to add scripts
+  #     #- ./lidarr/custom-cont-init.d:/custom-cont-init.d
+  #     #- ./lidarr/custom-services.d:/custom-services.d
+  #   # environment:
+  #   #   - PUID=$PUID
+  #   #   - PGID=$PGID
+  #   restart: unless-stopped
+  #   ports:
+  #     - 8686:8686
+
+  nzbget: #usenet download agent
+    container_name: nzbget
+    image: ghcr.io/hotio/nzbget
+    ports:
+      - "6789:6789"
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      - UMASK=002
+      - TZ=$TZ
+    volumes:
+      - ./nzbget:/config
+      - $MEDIADIR/usenet:/media/usenet
+    restart: unless-stopped
+
+#  ombi: #media requesting tool
+#    container_name: ombi
+#    image: lscr.io/linuxserver/ombi:latest
+#    ports:
+#      - 3579:3579
+#    environment:
+#      - PUID=$PUID
+#      - PGID=$PGID
+#      - TZ=$TZ
+#      - UMASK=002
+#      - ARGS
+#      - DEBUG=no
+#    volumes:
+#      - ./ombi:/config
+
+  overseerr: #media requesting tool
+    container_name: overseerr
+    image: ghcr.io/hotio/overseerr
+    ports:
+      - "5055:5055"
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      - UMASK=002
+      - TZ=$TZ
+    volumes:
+      - ./overseerr:/app/config
+    restart: unless-stopped
+
+  plex: # Media Server
+    container_name: plex
+    image: ghcr.io/hotio/plex
+    ports:
+      - 32400:32400
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    environment:
+      # - PUID=$PUID
+      # - PGID=$PGID
+      - TZ=$TZ
+      - UMASK=002
+      - DEBUG=no
+      # - PLEX_CLAIM=$PLEX_CLAIM
+      # - PLEX_PASS=$PLEX_PASS
+      # - ADVERTISE_IP=$PLEX_ADVERTISE_IP
+    volumes:
+      - ./plex:/config:rw
+      - $PLEXMEDIA:/data/media:rw
+      - /tmp:/transcode:rw
+    devices:
+      - /dev/dri:/dev/dri #required for Synology users
+    # network_mode: host
+
+#  prowlarr: #indexer manager for Sonarr & Radarr
+#    image: ghcr.io/linuxserver/prowlarr:develop
+#    container_name: prowlarr
+#    environment:
+#      - PUID=$PUID
+#      - PGID=$PGID
+#      - TZ=$TZ
+#    volumes:
+#      - ./prowlarr:/config
+#    ports:
+#      - 9696:9696
+#    restart: unless-stopped
+
+  radarr: #movie search agent
+    container_name: radarr
+    image: ghcr.io/hotio/radarr
+    ports:
+      - "7878:7878"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Etc/UTC
+    volumes:
+      - ./radarr:/config
+      - $MEDIADIR:/data
+    restart: unless-stopped
+
+  sonarr: #TV show search agent
+    container_name: sonarr
+    image: ghcr.io/hotio/sonarr
+    ports:
+      - "8989:8989"
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      - UMASK=002
+      - TZ=Etc/UTC
+    volumes:
+      - ./sonarr:/config
+      - $MEDIADIR:/data
+    restart: unless-stopped
+
+  tautulli: #plex monitoring
+    container_name: tautulli
+    image: ghcr.io/hotio/tautulli
+    ports:
+      - "8181:8181"
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      - UMASK=002
+      - TZ=Etc/UTC
+      - WEBUI_PORTS=8181/tcp,8181/udp
+    volumes:
+      - ./tautulli:/config
+    restart: unless-stopped
