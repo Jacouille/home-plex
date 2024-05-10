@@ -1,8 +1,2 @@
 *.local
-lidarr
-nzbget
-overseerr
-plex
-radarr
-sonarr
-tautulli
+configs

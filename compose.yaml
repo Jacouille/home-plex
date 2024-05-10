@@ -16,7 +16,7 @@ services:
       - TZ=$TZ
       - WEBUI_PORTS=6767/tcp,6767/udp
     volumes:
-      - ./lidarr:/config
+      - ./configs/lidarr:/config
       - $MEDIADIR:/data
     restart: unless-stopped
 
@@ -24,7 +24,7 @@ services:
   #   image: lscr.io/linuxserver/lidarr:latest
   #   container_name: lidarr
   #   volumes:
-  #     - ./lidarr:/config
+  #     - ./configs/lidarr:/config
   #     - $MEDIADIR:/media
   #     #uncomment ONLY if you plan to follow the instructions in the link below to add scripts
   #     #- ./lidarr/custom-cont-init.d:/custom-cont-init.d
@@ -35,21 +35,6 @@ services:
   #   restart: unless-stopped
   #   ports:
   #     - 8686:8686
-
-  nzbget: #usenet download agent
-    container_name: nzbget
-    image: ghcr.io/hotio/nzbget
-    ports:
-      - "6789:6789"
-    environment:
-      # - PUID=1000
-      # - PGID=1000
-      - UMASK=002
-      - TZ=$TZ
-    volumes:
-      - ./nzbget:/config
-      - $MEDIADIR/usenet:/media/usenet
-    restart: unless-stopped
 
 #  ombi: #media requesting tool
 #    container_name: ombi
@@ -64,7 +49,7 @@ services:
 #      - ARGS
 #      - DEBUG=no
 #    volumes:
-#      - ./ombi:/config
+#      - ./configs/ombi:/config
 
   overseerr: #media requesting tool
     container_name: overseerr
@@ -77,7 +62,7 @@ services:
       - UMASK=002
       - TZ=$TZ
     volumes:
-      - ./overseerr:/app/config
+      - ./configs/overseerr:/app/config
     restart: unless-stopped
 
   plex: # Media Server
@@ -98,25 +83,42 @@ services:
       # - PLEX_PASS=$PLEX_PASS
       # - ADVERTISE_IP=$PLEX_ADVERTISE_IP
     volumes:
-      - ./plex:/config:rw
+      - ./configs/plex:/config:rw
       - $PLEXMEDIA:/data/media:rw
       - /tmp:/transcode:rw
     devices:
       - /dev/dri:/dev/dri #required for Synology users
     # network_mode: host
 
-#  prowlarr: #indexer manager for Sonarr & Radarr
-#    image: ghcr.io/linuxserver/prowlarr:develop
-#    container_name: prowlarr
-#    environment:
-#      - PUID=$PUID
-#      - PGID=$PGID
-#      - TZ=$TZ
-#    volumes:
-#      - ./prowlarr:/config
-#    ports:
-#      - 9696:9696
-#    restart: unless-stopped
+  prowlarr: #indexer manager for Sonarr & Radarr
+    container_name: prowlarr
+    image: ghcr.io/hotio/prowlarr
+    ports:
+      - "9696:9696"
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      - UMASK=002
+      - TZ=$TZ
+    volumes:
+      - ./configs/prowlarr:/config
+    restart: unless-stopped
+
+  qbittorrent:
+    container_name: qbittorrent
+    image: ghcr.io/hotio/qbittorrent
+    ports:
+      - "8080:8080"
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=8080/tcp,8080/udp
+    volumes:
+      - ./configs/qbittorrent:/config
+      - $MEDIADIR:/data
+    restart: unless-stopped
 
   radarr: #movie search agent
     container_name: radarr
@@ -124,12 +126,12 @@ services:
     ports:
       - "7878:7878"
     environment:
-      - PUID=1000
-      - PGID=1000
+      # - PUID=1000
+      # - PGID=1000
       - UMASK=002
-      - TZ=Etc/UTC
+      - TZ=$TZ
     volumes:
-      - ./radarr:/config
+      - ./configs/radarr:/config
       - $MEDIADIR:/data
     restart: unless-stopped
 
@@ -142,23 +144,23 @@ services:
       # - PUID=1000
       # - PGID=1000
       - UMASK=002
-      - TZ=Etc/UTC
+      - TZ=$TZ
     volumes:
-      - ./sonarr:/config
+      - ./configs/sonarr:/config
       - $MEDIADIR:/data
     restart: unless-stopped
 
-  tautulli: #plex monitoring
-    container_name: tautulli
-    image: ghcr.io/hotio/tautulli
-    ports:
-      - "8181:8181"
-    environment:
-      # - PUID=1000
-      # - PGID=1000
-      - UMASK=002
-      - TZ=Etc/UTC
-      - WEBUI_PORTS=8181/tcp,8181/udp
-    volumes:
-      - ./tautulli:/config
-    restart: unless-stopped
+  # tautulli: #plex monitoring
+  #   container_name: tautulli
+  #   image: ghcr.io/hotio/tautulli
+  #   ports:
+  #     - "8181:8181"
+  #   environment:
+  #     # - PUID=1000
+  #     # - PGID=1000
+  #     - UMASK=002
+  #     - TZ=$TZ
+  #     - WEBUI_PORTS=8181/tcp,8181/udp
+  #   volumes:
+  #     - ./configs/tautulli:/config
+  #   restart: unless-stopped
