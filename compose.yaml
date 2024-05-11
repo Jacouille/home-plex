@@ -17,7 +17,7 @@ services:
       - WEBUI_PORTS=6767/tcp,6767/udp
     volumes:
       - ./configs/lidarr:/config
-      - $MEDIADIR:/data
+      - $MEDIADIR/media:/data/media
     restart: unless-stopped
 
   # lidarr: # music search agent
@@ -35,21 +35,6 @@ services:
   #   restart: unless-stopped
   #   ports:
   #     - 8686:8686
-
-#  ombi: #media requesting tool
-#    container_name: ombi
-#    image: lscr.io/linuxserver/ombi:latest
-#    ports:
-#      - 3579:3579
-#    environment:
-#      - PUID=$PUID
-#      - PGID=$PGID
-#      - TZ=$TZ
-#      - UMASK=002
-#      - ARGS
-#      - DEBUG=no
-#    volumes:
-#      - ./configs/ombi:/config
 
   overseerr: #media requesting tool
     container_name: overseerr
@@ -115,6 +100,22 @@ services:
       - UMASK=002
       - TZ=$TZ
       - WEBUI_PORTS=8080/tcp,8080/udp
+      # - VPN_ENABLED=true
+      # - VPN_CONF=wg0
+      # - VPN_PROVIDER=proton
+      # - VPN_LAN_NETWORK=192.168.0.0/24
+      # - VPN_LAN_LEAK_ENABLED=false
+      # - VPN_AUTO_PORT_FORWARD=true
+      # - VPN_KEEP_LOCAL_DNS=false
+      # - VPN_FIREWALL_TYPE=auto
+      # - VPN_HEALTHCHECK_ENABLED=true
+      # - PRIVOXY_ENABLED=false
+      # - UNBOUND_ENABLED=false
+    # cap_add:
+    #   - NET_ADMIN
+    # sysctls:
+    #   - net.ipv4.conf.all.src_valid_mark=1
+    #   - net.ipv6.conf.all.disable_ipv6=1
     volumes:
       - ./configs/qbittorrent:/config
       - $MEDIADIR:/data
@@ -150,17 +151,17 @@ services:
       - $MEDIADIR:/data
     restart: unless-stopped
 
-  # tautulli: #plex monitoring
-  #   container_name: tautulli
-  #   image: ghcr.io/hotio/tautulli
-  #   ports:
-  #     - "8181:8181"
-  #   environment:
-  #     # - PUID=1000
-  #     # - PGID=1000
-  #     - UMASK=002
-  #     - TZ=$TZ
-  #     - WEBUI_PORTS=8181/tcp,8181/udp
-  #   volumes:
-  #     - ./configs/tautulli:/config
-  #   restart: unless-stopped
+  tautulli: #plex monitoring
+    container_name: tautulli
+    image: ghcr.io/hotio/tautulli
+    ports:
+      - "8181:8181"
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=8181/tcp,8181/udp
+    volumes:
+      - ./configs/tautulli:/config
+    restart: unless-stopped
