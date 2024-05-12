@@ -4,58 +4,72 @@ networks:
     external: true
 
 services:
-  # gluetun:
-  #   container_name: vpn
-  #   image: qmcgaw/gluetun
-  #   cap_add:
-  #     - NET_ADMIN
-  #   network_mode: bridge
-  #   ports:
-  #     - 8080:8080
-  #     - 6881:6881
-  #     - 6881:6881/udp
-  #   volumes:
-  #     # - ./configs/gluetun/vpn.conf:/gluetun/vpn.conf:ro
-  #     - ./configs/gluetun:/gluetun
-  #   # environment:
-  #   #   - VPN_SERVICE_PROVIDER=custom
-  #   #   - VPN_TYPE=openvpn
-  #   #   - OPENVPN_CUSTOM_CONFIG=/gluetun/vpn.conf
-  #   #   - OPENVPN_USER=username
-  #   #   - OPENVPN_PASSWORD=password
-  #   environment:
-  #     - VPN_SERVICE_PROVIDER=private internet access
-  #     - OPENVPN_USER=$OPENVPN_USER
-  #     - OPENVPN_PASSWORD=$OPENVPN_PASSWORD
-  #     - SERVER_REGIONS=CA Montreal,CA Ontario,CA Toronto
-  #     - FIREWALL_OUTBOUND_SUBNETS=172.17.0.0/16
-  #   devices:
-  #     - /dev/net/tun:/dev/net/tun
-  #   restart: unless-stopped
+  gluetun:
+    container_name: vpn
+    image: qmcgaw/gluetun
+    cap_add:
+      - NET_ADMIN
+    network_mode: bridge
+    ports:
+      # qbittorent
+      - 8080:8080
 
-  # qbittorrent:
-  #   container_name: qbittorrent
-  #   image: ghcr.io/hotio/qbittorrent
-  #   network_mode: "service:gluetun"
-  #   depends_on:
-  #     gluetun:
-  #       condition: service_healthy
-  #   environment:
-  #     - PUID=$PUID
-  #     - PGID=$PGID
-  #     - UMASK=002
-  #     - TZ=$TZ
-  #     - WEBUI_PORTS=8080/tcp,8080/udp
-  #   volumes:
-  #     - ./configs/qbittorrent:/config
-  #     - $MEDIADIR:/data
-  #   restart: unless-stopped
+      # unknown
+      # - 6881:6881
+      # - 6881:6881/udp
+
+      # arr suite
+      - 6767:6767
+      - 7878:7878
+      - 8989:8989
+      - 9696:9696
+
+      # overseer
+      - 5055:5055
+    volumes:
+      # - ./configs/gluetun/vpn.conf:/gluetun/vpn.conf:ro
+      - ./configs/gluetun:/gluetun
+    # environment:
+    #   - VPN_SERVICE_PROVIDER=custom
+    #   - VPN_TYPE=openvpn
+    #   - OPENVPN_CUSTOM_CONFIG=/gluetun/vpn.conf
+    #   - OPENVPN_USER=username
+    #   - OPENVPN_PASSWORD=password
+    environment:
+      - VPN_SERVICE_PROVIDER=private internet access
+      - OPENVPN_USER=$OPENVPN_USER
+      - OPENVPN_PASSWORD=$OPENVPN_PASSWORD
+      - SERVER_REGIONS=CA Montreal,CA Ontario,CA Toronto
+      - FIREWALL_OUTBOUND_SUBNETS=172.17.0.0/16
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: unless-stopped
+
+  qbittorrent:
+    container_name: qbittorrent
+    image: ghcr.io/hotio/qbittorrent
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=8080/tcp,8080/udp
+    volumes:
+      - ./configs/qbittorrent:/config
+      - $MEDIADIR:/data
+    restart: unless-stopped
 
   bazarr: #subtitle grabber
     container_name: bazarr
     image: ghcr.io/hotio/bazarr
-    ports:
-      - "6767:6767"
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
     environment:
       - PUID=$PUID
       - PGID=$PGID
@@ -70,13 +84,16 @@ services:
   overseerr: #media requesting tool
     container_name: overseerr
     image: ghcr.io/hotio/overseerr
-    ports:
-      - "5055:5055"
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
     environment:
       - PUID=$PUID
       - PGID=$PGID
       - UMASK=002
       - TZ=$TZ
+      - WEBUI_PORTS=5055/tcp,5055/udp
     volumes:
       - ./configs/overseerr:/app/config
     restart: unless-stopped
@@ -112,13 +129,16 @@ services:
   prowlarr: #indexer manager for Sonarr & Radarr
     container_name: prowlarr
     image: ghcr.io/hotio/prowlarr
-    ports:
-      - "9696:9696"
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
     environment:
       - PUID=$PUID
       - PGID=$PGID
       - UMASK=002
       - TZ=$TZ
+      - WEBUI_PORTS=9696/tcp,9696/udp
     volumes:
       - ./configs/prowlarr:/config
     restart: unless-stopped
@@ -126,13 +146,16 @@ services:
   radarr: #movie search agent
     container_name: radarr
     image: ghcr.io/hotio/radarr
-    ports:
-      - "7878:7878"
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
     environment:
       - PUID=$PUID
       - PGID=$PGID
       - UMASK=002
       - TZ=$TZ
+      - WEBUI_PORTS=7878/tcp,7878/udp
     volumes:
       - ./configs/radarr:/config
       - $MEDIADIR:/data
@@ -141,13 +164,16 @@ services:
   sonarr: #TV show search agent
     container_name: sonarr
     image: ghcr.io/hotio/sonarr
-    ports:
-      - "8989:8989"
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
     environment:
       - PUID=$PUID
       - PGID=$PGID
       - UMASK=002
       - TZ=$TZ
+      - WEBUI_PORTS=8989/tcp,8989/udp
     volumes:
       - ./configs/sonarr:/config
       - $MEDIADIR:/data
