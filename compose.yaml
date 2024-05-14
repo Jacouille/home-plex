@@ -9,23 +9,8 @@ services:
     image: qmcgaw/gluetun
     cap_add:
       - NET_ADMIN
-    network_mode: bridge
     ports:
-      # qbittorent
       - 8080:8080
-
-      # unknown
-      # - 6881:6881
-      # - 6881:6881/udp
-
-      # arr suite
-      - 6767:6767
-      - 7878:7878
-      - 8989:8989
-      - 9696:9696
-
-      # overseer
-      - 5055:5055
     volumes:
       # - ./configs/gluetun/vpn.conf:/gluetun/vpn.conf:ro
       - ./configs/gluetun:/gluetun
@@ -66,10 +51,8 @@ services:
   bazarr: #subtitle grabber
     container_name: bazarr
     image: ghcr.io/hotio/bazarr
-    network_mode: "service:gluetun"
-    depends_on:
-      gluetun:
-        condition: service_healthy
+    ports:
+      - "6767:6767"
     environment:
       - PUID=$PUID
       - PGID=$PGID
@@ -84,10 +67,8 @@ services:
   overseerr: #media requesting tool
     container_name: overseerr
     image: ghcr.io/hotio/overseerr
-    network_mode: "service:gluetun"
-    depends_on:
-      gluetun:
-        condition: service_healthy
+    ports:
+      - "5055:5055"
     environment:
       - PUID=$PUID
       - PGID=$PGID
@@ -114,25 +95,18 @@ services:
       - PLEX_CLAIM_TOKEN=$PLEX_CLAIM
       - PLEX_BETA_INSTALL=false
       - PLEX_PURGE_CODECS=false
-      # - PLEX_ADVERTISE_URL=$PLEX_ADVERTISE_URL
-      # - PLEX_ADVERTISE_URL=http://172.19.0.5:32400
-      # - ADVERTISE_IP=$PLEX_ADVERTISE_IP
-      # - PLEX_PASS=$PLEX_PASS
     volumes:
       - ./configs/plex:/config:rw
       - $PLEXMEDIA:/data/media:rw
       - /tmp:/transcode:rw
     devices:
       - /dev/dri:/dev/dri #required for Synology users
-    # network_mode: "host"
 
   prowlarr: #indexer manager for Sonarr & Radarr
     container_name: prowlarr
     image: ghcr.io/hotio/prowlarr
-    network_mode: "service:gluetun"
-    depends_on:
-      gluetun:
-        condition: service_healthy
+    ports:
+      - "9696:9696"
     environment:
       - PUID=$PUID
       - PGID=$PGID
@@ -146,10 +120,8 @@ services:
   radarr: #movie search agent
     container_name: radarr
     image: ghcr.io/hotio/radarr
-    network_mode: "service:gluetun"
-    depends_on:
-      gluetun:
-        condition: service_healthy
+    ports:
+      - "7878:7878"
     environment:
       - PUID=$PUID
       - PGID=$PGID
@@ -164,10 +136,8 @@ services:
   sonarr: #TV show search agent
     container_name: sonarr
     image: ghcr.io/hotio/sonarr
-    network_mode: "service:gluetun"
-    depends_on:
-      gluetun:
-        condition: service_healthy
+    ports:
+      - "8989:8989"
     environment:
       - PUID=$PUID
       - PGID=$PGID
