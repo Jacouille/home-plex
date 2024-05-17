@@ -1,6 +1,6 @@
 networks:
   default:
-    name: home-plex
+    name: home-media-server
     external: true
 
 services:
