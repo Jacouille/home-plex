@@ -1,0 +1,135 @@
+networks:
+  default:
+    name: home-plex
+    external: true
+
+services:
+  gluetun:
+    container_name: vpn
+    image: qmcgaw/gluetun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8080:8080
+    volumes:
+      - ./configs/gluetun:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=private internet access
+      - OPENVPN_USER=$OPENVPN_USER
+      - OPENVPN_PASSWORD=$OPENVPN_PASSWORD
+      - SERVER_REGIONS=CA Montreal,CA Ontario,CA Toronto
+      - FIREWALL_OUTBOUND_SUBNETS=172.17.0.0/16
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: unless-stopped
+
+  qbittorrent:
+    container_name: qbittorrent
+    image: ghcr.io/hotio/qbittorrent
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=8080/tcp,8080/udp
+    volumes:
+      - ./configs/qbittorrent:/config
+      - $MEDIADIR:/data
+    restart: unless-stopped
+
+  bazarr: #subtitle grabber
+    container_name: bazarr
+    image: ghcr.io/hotio/bazarr
+    ports:
+      - "6767:6767"
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=6767/tcp,6767/udp
+    volumes:
+      - ./configs/lidarr:/config
+      - $MEDIADIR/media:/data/media
+    restart: unless-stopped
+
+  jellyseerr: #media requesting tool
+    container_name: jellyseerr
+    image: ghcr.io/hotio/jellyseerr
+    ports:
+      - "5055:5055"
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=5055/tcp,5055/udp
+    volumes:
+      - ./configs/jellyseerr:/app/config
+    restart: unless-stopped
+
+  jellyfin: # Media Server
+    container_name: jellyfin
+    image: jellyfin/jellyfin
+    network_mode: "host"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    user: $PUID:$PGID
+    volumes:
+      - ./configs/jellyfin:/config
+      - ./configs/jellyfin/cache:/cache
+      - type: bind
+        source: $PLEXMEDIA
+        target: /data/media
+    restart: unless-stopped
+
+  prowlarr: #indexer manager for Sonarr & Radarr
+    container_name: prowlarr
+    image: ghcr.io/hotio/prowlarr
+    ports:
+      - "9696:9696"
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=9696/tcp,9696/udp
+    volumes:
+      - ./configs/prowlarr:/config
+    restart: unless-stopped
+
+  radarr: #movie search agent
+    container_name: radarr
+    image: ghcr.io/hotio/radarr
+    ports:
+      - "7878:7878"
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=7878/tcp,7878/udp
+    volumes:
+      - ./configs/radarr:/config
+      - $MEDIADIR:/data
+    restart: unless-stopped
+
+  sonarr: #TV show search agent
+    container_name: sonarr
+    image: ghcr.io/hotio/sonarr
+    ports:
+      - "8989:8989"
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      - WEBUI_PORTS=8989/tcp,8989/udp
+    volumes:
+      - ./configs/sonarr:/config
+      - $MEDIADIR:/data
+    restart: unless-stopped
