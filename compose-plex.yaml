@@ -4,41 +4,38 @@ networks:
     external: true
 
 services:
-  gluetun:
-    container_name: vpn
-    image: qmcgaw/gluetun
-    cap_add:
-      - NET_ADMIN
-    ports:
-      - 8080:8080
-    volumes:
-      - ./configs/gluetun:/gluetun
-    environment:
-      - VPN_SERVICE_PROVIDER=private internet access
-      - OPENVPN_USER=$OPENVPN_USER
-      - OPENVPN_PASSWORD=$OPENVPN_PASSWORD
-      - SERVER_REGIONS=CA Montreal,CA Ontario,CA Toronto
-      - FIREWALL_OUTBOUND_SUBNETS=172.17.0.0/16
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    restart: unless-stopped
-
   qbittorrent:
     container_name: qbittorrent
     image: ghcr.io/hotio/qbittorrent
-    network_mode: "service:gluetun"
-    depends_on:
-      gluetun:
-        condition: service_healthy
     environment:
       - PUID=$PUID
       - PGID=$PGID
       - UMASK=002
       - TZ=$TZ
       - WEBUI_PORTS=8080/tcp,8080/udp
+      - VPN_ENABLED=true
+      - VPN_PROVIDER=pia
+      - VPN_LAN_NETWORK=192.168.1.0/24
+      - VPN_LAN_LEAK_ENABLED=false
+      - VPN_AUTO_PORT_FORWARD=true
+      - VPN_KEEP_LOCAL_DNS=false
+      - VPN_FIREWALL_TYPE=auto
+      - VPN_HEALTHCHECK_ENABLED=true
+      - VPN_PIA_USER=$OPENVPN_USER
+      - VPN_PIA_PASS=$OPENVPN_PASS
+      - VPN_PIA_PREFERRED_REGION=ca
+      - VPN_PIA_DIP_TOKEN=no
+      - VPN_PIA_PORT_FORWARD_PERSIST=false
+      - PRIVOXY_ENABLED=false
+      - UNBOUND_ENABLED=false
     volumes:
       - ./configs/qbittorrent:/config
       - $MEDIADIR:/data
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=1
     restart: unless-stopped
 
   bazarr: #subtitle grabber
@@ -91,8 +88,6 @@ services:
       - ./configs/plex:/config:rw
       - $PLEXMEDIA:/data/media:rw
       - /tmp:/transcode:rw
-    devices:
-      - /dev/dri:/dev/dri #required for Synology users
     restart: unless-stopped
 
   prowlarr: #indexer manager for Sonarr & Radarr

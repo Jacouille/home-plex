@@ -16,8 +16,8 @@ Create the folowing file structure in the root of this repo
         - tv
 
 - ```bash
-    docker network create home-plex
+    docker network create home-media-server
     ```
 - ```bash
-    docker compose --env-file .env.local up -d
+    docker compose up -d
     ```
