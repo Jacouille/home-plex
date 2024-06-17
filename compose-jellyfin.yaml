@@ -54,6 +54,21 @@ services:
       - $MEDIADIR/media:/data/media
     restart: unless-stopped
 
+  caddy:
+    container_name: caddy
+    image: ghcr.io/hotio/caddy
+    ports:
+      - "80:8080"
+      - "443:8443"
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      # - CUSTOM_BUILD
+    volumes:
+      - ./configs:/config
+
   jellyseerr: #media requesting tool
     container_name: jellyseerr
     image: ghcr.io/hotio/jellyseerr
