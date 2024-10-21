@@ -7,6 +7,10 @@ services:
   qbittorrent:
     container_name: qbittorrent
     image: ghcr.io/hotio/qbittorrent
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8080:8080
     environment:
       - PUID=$PUID
       - PGID=$PGID
@@ -15,14 +19,14 @@ services:
       - WEBUI_PORTS=8080/tcp,8080/udp
       - VPN_ENABLED=true
       - VPN_PROVIDER=pia
-      - VPN_LAN_NETWORK=192.168.1.0/24
+      - VPN_LAN_NETWORK=192.168.0.0/24
       - VPN_LAN_LEAK_ENABLED=false
       - VPN_AUTO_PORT_FORWARD=true
       - VPN_KEEP_LOCAL_DNS=false
       - VPN_FIREWALL_TYPE=auto
       - VPN_HEALTHCHECK_ENABLED=true
       - VPN_PIA_USER=$OPENVPN_USER
-      - VPN_PIA_PASS=$OPENVPN_PASS
+      - VPN_PIA_PASS=$OPENVPN_PASSWORD
       - VPN_PIA_PREFERRED_REGION=ca
       - VPN_PIA_DIP_TOKEN=no
       - VPN_PIA_PORT_FORWARD_PERSIST=false
@@ -31,8 +35,6 @@ services:
     volumes:
       - ./configs/qbittorrent:/config
       - $MEDIADIR:/data
-    cap_add:
-      - NET_ADMIN
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
       - net.ipv6.conf.all.disable_ipv6=1
@@ -50,13 +52,15 @@ services:
       - TZ=$TZ
       - WEBUI_PORTS=6767/tcp,6767/udp
     volumes:
-      - ./configs/lidarr:/config
-      - $MEDIADIR/media:/data/media
+      - ./configs/bazarr:/config
+      - $MEDIADIR:/data/media
     restart: unless-stopped
 
   caddy:
     container_name: caddy
     image: ghcr.io/hotio/caddy
+    cap_add:
+      - NET_ADMIN
     ports:
       - "80:8080"
       - "443:8443"
@@ -65,9 +69,10 @@ services:
       - PGID=$PGID
       - UMASK=002
       - TZ=$TZ
-      # - CUSTOM_BUILD
+      - CUSTOM_BUILD=/config/caddy_linux_amd64_custom
     volumes:
-      - ./configs:/config
+      - ./configs/caddy:/config
+    restart: unless-stopped
 
   jellyseerr: #media requesting tool
     container_name: jellyseerr
@@ -87,16 +92,35 @@ services:
   jellyfin: # Media Server
     container_name: jellyfin
     image: jellyfin/jellyfin
-    network_mode: "host"
+    network_mode: host
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: $PUID:$PGID
+    group_add:
+      - "105"
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    environment:
+      - TZ=$TZ
     volumes:
       - ./configs/jellyfin:/config
       - ./configs/jellyfin/cache:/cache
+      - ./configs/jellyfin/cache/transcodes:/transcodes
       - type: bind
-        source: $PLEXMEDIA
+        source: $MEDIADIR
         target: /data/media
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+      - TZ=$TZ
+    ports:
+      - "8191:8191"
     restart: unless-stopped
 
   prowlarr: #indexer manager for Sonarr & Radarr
@@ -145,3 +169,65 @@ services:
       - ./configs/sonarr:/config
       - $MEDIADIR:/data
     restart: unless-stopped
+
+  tdarr:
+    container_name: tdarr
+    image: ghcr.io/haveagitgat/tdarr:latest
+    ports:
+      - 8265:8265 # webUI port
+      - 8266:8266 # server port
+    environment:
+      - TZ=$TZ
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK_SET=002
+      - serverIP=0.0.0.0
+      - serverPort=8266
+      - webUIPort=8265
+      - internalNode=true
+      - inContainer=true
+      - ffmpegVersion=6
+      - nodeName=ServerNode
+    volumes:
+      - ./configs/tdarr/server:/app/server
+      - ./configs/tdarr/configs:/app/configs
+      - ./configs/tdarr/logs:/app/logs
+      - /media/arnaud/hdd/media-server/media:/media
+      - ./configs/tdarr/transcode_cache:/temp
+    devices:
+      - /dev/dri:/dev/dri
+    restart: unless-stopped
+
+  homarr:
+    container_name: homarr
+    image: ghcr.io/ajnart/homarr:latest
+    restart: unless-stopped
+    environment:
+      - TZ=$TZ
+      - DEFAULT_COLOR_SCHEME=dark
+      - DISABLE_ANALYTICS=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./configs/homarr/configs:/app/data/configs
+      - ./configs/homarr/icons:/app/public/icons
+      - ./configs/homarr/data:/data
+    ports:
+      - '7575:7575'
+
+  dash:
+    image: mauricenino/dashdot:latest
+    container_name: dash
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - '3001:3001'
+    environment:
+      - DASHDOT_ENABLE_CPU_TEMPS=true
+      - DASHDOT_WIDGET_LIST=cpu,storage,ram,network
+      - DASHDOT_PAGE_TITLE=Home Server
+      - DASHDOT_ALWAYS_SHOW_PERCENTAGES=true
+      - DASHDOT_ACCEPT_OOKLA_EULA=true
+      - DASHDOT_SPEED_TEST_INTERVAL=720 # 12h
+      - DASHDOT_FS_DEVICE_FILTER=nvme0n1
+    volumes:
+      - /:/mnt/host:ro
