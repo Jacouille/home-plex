@@ -211,6 +211,7 @@ services:
   #   volumes:
   #     - ./configs/tautulli:/config
   #   restart: unless-stopped
+  
   homarr:
     container_name: homarr
     image: ghcr.io/ajnart/homarr:latest
