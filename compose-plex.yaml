@@ -106,8 +106,10 @@ services:
       - PLEX_PURGE_CODECS=false
     volumes:
       - ./configs/plex:/config:rw
-      - $PLEXMEDIA:/data/media:rw
-      - /tmp:/transcode:rw
+      - ./configs/plex/transcode:/transcode:rw
+      - type: bind
+        source: $MEDIADIR
+        target: /data/media
     restart: unless-stopped
 
   flaresolverr:
