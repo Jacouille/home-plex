@@ -7,6 +7,10 @@ services:
   qbittorrent:
     container_name: qbittorrent
     image: ghcr.io/hotio/qbittorrent
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8080:8080
     environment:
       - PUID=$PUID
       - PGID=$PGID
@@ -15,14 +19,14 @@ services:
       - WEBUI_PORTS=8080/tcp,8080/udp
       - VPN_ENABLED=true
       - VPN_PROVIDER=pia
-      - VPN_LAN_NETWORK=192.168.1.0/24
+      - VPN_LAN_NETWORK=192.168.0.0/24
       - VPN_LAN_LEAK_ENABLED=false
       - VPN_AUTO_PORT_FORWARD=true
       - VPN_KEEP_LOCAL_DNS=false
       - VPN_FIREWALL_TYPE=auto
       - VPN_HEALTHCHECK_ENABLED=true
       - VPN_PIA_USER=$OPENVPN_USER
-      - VPN_PIA_PASS=$OPENVPN_PASS
+      - VPN_PIA_PASS=$OPENVPN_PASSWORD
       - VPN_PIA_PREFERRED_REGION=ca
       - VPN_PIA_DIP_TOKEN=no
       - VPN_PIA_PORT_FORWARD_PERSIST=false
@@ -31,8 +35,6 @@ services:
     volumes:
       - ./configs/qbittorrent:/config
       - $MEDIADIR:/data
-    cap_add:
-      - NET_ADMIN
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
       - net.ipv6.conf.all.disable_ipv6=1
@@ -50,8 +52,26 @@ services:
       - TZ=$TZ
       - WEBUI_PORTS=6767/tcp,6767/udp
     volumes:
-      - ./configs/lidarr:/config
-      - $MEDIADIR/media:/data/media
+      - ./configs/bazarr:/config
+      - $MEDIADIR:/data/media
+    restart: unless-stopped
+
+  caddy:
+    container_name: caddy
+    image: ghcr.io/hotio/caddy
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "80:8080"
+      - "443:8443"
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - UMASK=002
+      - TZ=$TZ
+      - CUSTOM_BUILD=/config/caddy_linux_amd64_custom
+    volumes:
+      - ./configs/caddy:/config
     restart: unless-stopped
 
   overseerr: #media requesting tool
