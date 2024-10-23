@@ -192,7 +192,7 @@ services:
       - ./configs/tdarr/server:/app/server
       - ./configs/tdarr/configs:/app/configs
       - ./configs/tdarr/logs:/app/logs
-      - /media/arnaud/hdd/media-server/media:/media
+      - $MEDIADIR/media:/media
       - ./configs/tdarr/transcode_cache:/temp
     devices:
       - /dev/dri:/dev/dri
